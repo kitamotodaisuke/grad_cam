@@ -1,5 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import * as tf from '@tensorflow/tfjs'
+// TFLiteファイルをsrcからimport
+import jankenModelUrl from './models/janken_model.tflite'
 
 // じゃんけんの結果の型定義
 interface JankenPrediction {
@@ -28,14 +30,16 @@ const JANKEN_LABELS = ['グー', 'チョキ', 'パー']
 interface PresetModel {
   name: string
   path: string
+  fallbackPath?: string
   description: string
 }
 
 const PRESET_MODELS: PresetModel[] = [
   {
     name: 'janken_model.tflite',
-    path: '/models/janken_model.tflite',
-    description: 'じゃんけん認識モデル（グー・チョキ・パー）'
+    path: '/models/janken_model.tflite',  // publicからの読み込みを最初に試行
+    fallbackPath: jankenModelUrl,         // srcからimportしたパスをフォールバック
+    description: 'AiJan'
   }
 ]
 
@@ -102,6 +106,15 @@ function App() {
   const [predictions, setPredictions] = useState<JankenPrediction[]>([])
   const [isInferring, setIsInferring] = useState(false)
   const [gradcamData, setGradcamData] = useState<ImageData | null>(null)
+  const [appError, setAppError] = useState<string | null>(null)
+  const [tfReady, setTfReady] = useState(false)
+  const [debugInfo, setDebugInfo] = useState<string[]>([])
+
+  // デバッグ情報を追加する関数
+  const addDebugInfo = useCallback((message: string) => {
+    console.log('[Debug]', message)
+    setDebugInfo(prev => [...prev.slice(-9), `${new Date().toLocaleTimeString()}: ${message}`])
+  }, [])
 
   // refs
   const imageRef = useRef<HTMLImageElement>(null)
@@ -109,10 +122,24 @@ function App() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const modelInputRef = useRef<HTMLInputElement>(null)
 
-  // TensorFlow.jsの初期化
-  tf.ready().then(() => {
-    console.log('TensorFlow.js initialized')
-  })
+  // TensorFlow.jsの初期化をuseEffectで行う
+  useEffect(() => {
+    const initTensorFlow = async () => {
+      try {
+        addDebugInfo('TensorFlow.jsを初期化中...')
+        await tf.ready()
+        addDebugInfo('TensorFlow.js初期化完了')
+        setTfReady(true)
+      } catch (error) {
+        const errorMessage = `TensorFlow.js初期化失敗: ${error instanceof Error ? error.message : 'Unknown error'}`
+        console.error(errorMessage, error)
+        addDebugInfo(errorMessage)
+        setAppError(errorMessage)
+      }
+    }
+    
+    initTensorFlow()
+  }, [addDebugInfo])
 
   // TFLiteモデルのアップロード処理（直接読み込み対応）
   const handleModelUpload = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -188,15 +215,58 @@ function App() {
   const handlePresetModelLoad = useCallback(async (presetModel: PresetModel) => {
     try {
       setModelState(prev => ({ ...prev, error: null }))
-      console.log('Loading preset model:', presetModel.name)
+      addDebugInfo(`プリセットモデルを読み込み中: ${presetModel.name}`)
       
-      // プリセットモデルのパスからファイルを取得
-      const response = await fetch(presetModel.path)
-      if (!response.ok) {
-        throw new Error(`プリセットモデルの取得に失敗しました: ${response.status}`)
+      let arrayBuffer: ArrayBuffer | null = null
+      let loadedFrom = 'unknown'
+      
+      // フォールバックパスが存在することを確認
+      if (!presetModel.fallbackPath) {
+        throw new Error('フォールバックパスが設定されていません')
       }
       
-      const arrayBuffer = await response.arrayBuffer()
+      addDebugInfo(`フォールバックパス確認済み: ${presetModel.fallbackPath}`)
+      
+      // 最初にpublicディレクトリから読み込みを試行
+      try {
+        addDebugInfo(`publicディレクトリから読み込み試行: ${presetModel.path}`)
+        const response = await fetch(presetModel.path)
+        if (response.ok) {
+          arrayBuffer = await response.arrayBuffer()
+          loadedFrom = 'public'
+          addDebugInfo('publicディレクトリから読み込み成功')
+        } else {
+          throw new Error(`Public path failed: ${response.status} ${response.statusText}`)
+        }
+      } catch (publicError) {
+        addDebugInfo(`publicディレクトリから失敗: ${publicError instanceof Error ? publicError.message : '不明なエラー'}`)
+        
+        // フォールバック: srcからimportしたパスを使用
+        try {
+          addDebugInfo(`srcディレクトリからフォールバック読み込み試行: ${presetModel.fallbackPath}`)
+          const response = await fetch(presetModel.fallbackPath)
+          
+          addDebugInfo(`フォールバックレスポンス状態: ${response.status} ${response.statusText}`)
+          
+          if (response.ok) {
+            arrayBuffer = await response.arrayBuffer()
+            loadedFrom = 'src'
+            addDebugInfo('srcディレクトリからフォールバック読み込み成功')
+          } else {
+            throw new Error(`Fallback path failed: ${response.status} ${response.statusText}`)
+          }
+        } catch (fallbackError) {
+          addDebugInfo(`フォールバック読み込みエラー: ${fallbackError instanceof Error ? fallbackError.message : '不明なエラー'}`)
+          throw new Error(`両方の読み込みパスが失敗しました。Public: ${publicError instanceof Error ? publicError.message : '不明'}, Fallback: ${fallbackError instanceof Error ? fallbackError.message : '不明'}`)
+        }
+      }
+      
+      if (!arrayBuffer) {
+        throw new Error('モデルファイルの読み込みに失敗しました')
+      }
+      
+      addDebugInfo(`モデルファイル読み込み成功 (${loadedFrom}): ${arrayBuffer.byteLength} bytes`)
+      addDebugInfo('TFLiteローダーでモデルを初期化中...')
       
       // カスタムTFLiteローダーを使用してモデルを読み込み
       const loader = new TFLiteModelLoader()
@@ -208,19 +278,22 @@ function App() {
         error: null
       })
       
+      addDebugInfo(`プリセットモデル読み込み完了 (loaded from: ${loadedFrom})`)
       console.log('Preset TFLite model loaded successfully!')
       console.log('Model input shape:', model.inputShape)
       console.log('Model output shape:', model.outputShape)
       
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'プリセットモデルの読み込みに失敗しました'
       console.error('Failed to load preset model:', error)
+      addDebugInfo(`プリセットモデル読み込みエラー: ${errorMessage}`)
       setModelState({
         model: null,
         isLoaded: false,
-        error: error instanceof Error ? error.message : 'プリセットモデルの読み込みに失敗しました'
+        error: errorMessage
       })
     }
-  }, [])
+  }, [addDebugInfo])
 
   // 画像のアップロード処理
   const handleImageUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
@@ -513,8 +586,78 @@ function App() {
     }
   }, [gradcamData, drawHeatmap])
 
+  // エラー表示
+  if (appError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-900 text-white p-8">
+        <div className="text-center max-w-2xl">
+          <h1 className="text-3xl font-bold mb-6 text-red-400">アプリケーションエラー</h1>
+          <div className="bg-gray-800 p-4 rounded-lg mb-6 text-left">
+            <p className="text-red-300 mb-4">{appError}</p>
+            <div className="text-sm text-gray-400">
+              <h4 className="font-semibold mb-2">デバッグ情報:</h4>
+              {debugInfo.map((info, index) => (
+                <div key={index} className="mb-1">{info}</div>
+              ))}
+            </div>
+          </div>
+          <div className="space-x-4">
+            <button 
+              onClick={() => {
+                setAppError(null)
+                setDebugInfo([])
+                window.location.reload()
+              }} 
+              className="bg-blue-600 hover:bg-blue-700 px-6 py-3 rounded-lg"
+            >
+              再読み込み
+            </button>
+            <button 
+              onClick={() => {
+                navigator.clipboard.writeText(`Error: ${appError}\n\nDebug Info:\n${debugInfo.join('\n')}`)
+                alert('エラー情報をクリップボードにコピーしました')
+              }} 
+              className="bg-gray-600 hover:bg-gray-700 px-6 py-3 rounded-lg"
+            >
+              エラー情報をコピー
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // TensorFlow.js読み込み中
+  if (!tfReady) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-900 text-white">
+        <div className="text-center max-w-md">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-500 mx-auto mb-6"></div>
+          <h2 className="text-2xl font-semibold mb-4">TensorFlow.js 読み込み中...</h2>
+          <p className="text-gray-400 mb-6">初回読み込みには時間がかかる場合があります</p>
+          <div className="bg-gray-800 p-4 rounded-lg text-left text-sm">
+            <h4 className="font-semibold mb-2 text-gray-300">読み込み状況:</h4>
+            {debugInfo.map((info, index) => (
+              <div key={index} className="mb-1 text-gray-400">{info}</div>
+            ))}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="max-w-7xl mx-auto py-10 min-h-screen">
+      {/* デバッグパネル（開発時のみ表示） */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="mb-6 bg-gray-800 p-4 rounded-lg text-white text-xs">
+          <h4 className="font-semibold mb-2">デバッグ情報:</h4>
+          {debugInfo.map((info, index) => (
+            <div key={index} className="mb-1 text-gray-300">{info}</div>
+          ))}
+        </div>
+      )}
+      
       <h1 className="title-gradient">
         TensorFlow Lite 推論 & Grad-CAM 可視化
       </h1>
@@ -560,7 +703,7 @@ function App() {
                   onClick={() => handlePresetModelLoad(presetModel)}
                   className="btn-success-dark"
                 >
-                  🤖 {presetModel.description}
+                  {presetModel.description}
                 </button>
               ))}
             </div>

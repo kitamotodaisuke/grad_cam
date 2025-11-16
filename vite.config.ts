@@ -4,6 +4,28 @@ import react from '@vitejs/plugin-react'
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
+  base: './', // 相対パスを使用して本番環境でのパス問題を解決
+  build: {
+    outDir: 'dist',
+    assetsDir: 'assets',
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // TensorFlow.jsを別チャンクに分離してロード速度を改善
+          tensorflow: ['@tensorflow/tfjs'],
+        },
+        // モデルファイルをassetsディレクトリに出力
+        assetFileNames: (assetInfo) => {
+          if (assetInfo.name && assetInfo.name.endsWith('.tflite')) {
+            return 'models/[name][extname]';
+          }
+          return 'assets/[name]-[hash][extname]';
+        }
+      }
+    }
+  },
+  // srcディレクトリ内のファイルを静的アセットとして扱う
+  assetsInclude: ['**/*.tflite'],
   optimizeDeps: {
     exclude: ['@tensorflow/tfjs-tflite']
   },
