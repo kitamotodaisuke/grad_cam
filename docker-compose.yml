@@ -1,0 +1,26 @@
+version: '3.8'
+services:
+  frontend-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: grad-cam-dev
+    ports:
+      - "5173:5173"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      - CHOKIDAR_USEPOLLING=true
+    command: npm run dev -- --host 0.0.0.0
+
+  frontend-prod:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: grad-cam-prod
+    ports:
+      - "8080:80"
+    environment:
+      - NODE_ENV=production

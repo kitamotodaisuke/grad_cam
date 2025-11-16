@@ -1,0 +1,235 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ダークテーマのベーススタイル */
+@layer base {
+  html {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  }
+  
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: linear-gradient(135deg, #0c0c0c 0%, #1a1a2e 25%, #16213e 50%, #0f3460 75%, #0e4b99 100%);
+    background-attachment: fixed;
+  }
+
+  #root {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+}
+
+/* カスタムコンポーネント */
+@layer components {
+  /* カードのダークグラデーション */
+  .dark-card {
+    @apply rounded-xl p-6 mb-10;
+    background: linear-gradient(145deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%);
+    border: 1px solid rgba(255,255,255,0.1);
+    backdrop-filter: blur(10px);
+    box-shadow: 
+      0 8px 32px rgba(0,0,0,0.3),
+      inset 0 1px 0 rgba(255,255,255,0.1);
+    transition: all 0.3s ease;
+  }
+
+  .dark-card:hover {
+    background: linear-gradient(145deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.04) 100%);
+    border-color: rgba(102, 126, 234, 0.3);
+    box-shadow: 
+      0 12px 40px rgba(0,0,0,0.4),
+      0 0 20px rgba(102, 126, 234, 0.2),
+      inset 0 1px 0 rgba(255,255,255,0.15);
+  }
+
+  /* プライマリボタンのダークグラデーション */
+  .btn-primary-dark {
+    @apply text-white font-semibold py-3 px-8 rounded-full transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-wider;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    box-shadow: 
+      0 4px 15px rgba(102, 126, 234, 0.4),
+      0 0 20px rgba(102, 126, 234, 0.2);
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+
+  .btn-primary-dark:hover:not(:disabled) {
+    background: linear-gradient(135deg, #7c8ef0 0%, #8b5aa8 100%);
+    box-shadow: 
+      0 6px 20px rgba(102, 126, 234, 0.6),
+      0 0 30px rgba(102, 126, 234, 0.4);
+    transform: translateY(-2px);
+  }
+
+  /* サクセスボタンのダークグラデーション */
+  .btn-success-dark {
+    @apply text-white font-semibold py-3 px-6 rounded-lg transition-all duration-300 text-left relative overflow-hidden;
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    box-shadow: 
+      0 4px 15px rgba(40, 167, 69, 0.4),
+      0 0 20px rgba(40, 167, 69, 0.2);
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+
+  .btn-success-dark:hover {
+    background: linear-gradient(135deg, #32c252 0%, #26d4a3 100%);
+    box-shadow: 
+      0 6px 20px rgba(40, 167, 69, 0.6),
+      0 0 30px rgba(40, 167, 69, 0.4);
+    transform: translateY(-2px);
+  }
+
+  /* ドロップゾーンのダークスタイル */
+  .drop-zone-dark {
+    @apply min-h-[300px] flex items-center justify-center cursor-pointer transition-all duration-300 rounded-xl mb-5;
+    background: linear-gradient(145deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%);
+    border: 2px dashed rgba(255,255,255,0.2);
+    backdrop-filter: blur(5px);
+  }
+
+  .drop-zone-dark:hover {
+    background: linear-gradient(145deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.05) 100%);
+    border-color: rgba(102, 126, 234, 0.4);
+    box-shadow: 
+      inset 0 0 20px rgba(102, 126, 234, 0.1),
+      0 0 20px rgba(102, 126, 234, 0.2);
+  }
+
+  /* 入力フィールドのダークスタイル */
+  .input-dark {
+    @apply w-full p-3 rounded-lg cursor-pointer transition-colors duration-300;
+    background: linear-gradient(145deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%);
+    border: 2px dashed rgba(255,255,255,0.2);
+    color: rgba(255,255,255,0.9);
+    backdrop-filter: blur(5px);
+  }
+
+  .input-dark:hover {
+    border-color: rgba(102, 126, 234, 0.4);
+    box-shadow: 0 0 10px rgba(102, 126, 234, 0.2);
+  }
+
+  .input-dark:focus {
+    border-color: rgba(102, 126, 234, 0.6);
+    box-shadow: 0 0 15px rgba(102, 126, 234, 0.3);
+    outline: none;
+  }
+
+  /* 予測結果カードのダークスタイル */
+  .prediction-dark {
+    @apply p-5 rounded-lg transition-all duration-300;
+    background: linear-gradient(145deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.03) 100%);
+    border-left: 4px solid;
+    border-image: linear-gradient(135deg, #667eea, #764ba2) 1;
+    backdrop-filter: blur(8px);
+  }
+
+  .prediction-dark:hover {
+    background: linear-gradient(145deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.08) 100%);
+    transform: translateX(5px);
+    box-shadow: 
+      0 5px 15px rgba(0,0,0,0.3),
+      0 0 20px rgba(102, 126, 234, 0.2);
+  }
+
+  /* タイトルのグラデーションテキスト */
+  .title-gradient {
+    @apply text-center mb-10 text-4xl font-bold;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    color: transparent;
+    text-shadow: 0 0 30px rgba(102, 126, 234, 0.3);
+  }
+
+  /* セクションタイトルのダークスタイル */
+  .section-title-dark {
+    @apply mb-5 text-2xl font-semibold pb-3;
+    color: rgba(255,255,255,0.9);
+    border-bottom: 2px solid;
+    border-image: linear-gradient(90deg, rgba(102, 126, 234, 0.6) 0%, transparent 100%) 1;
+  }
+
+  /* エラーメッセージのダークスタイル */
+  .error-dark {
+    @apply p-4 rounded-lg mt-4 font-medium;
+    background: linear-gradient(145deg, rgba(220, 53, 69, 0.2) 0%, rgba(220, 53, 69, 0.1) 100%);
+    border-left: 4px solid #dc3545;
+    backdrop-filter: blur(10px);
+    color: #ff6b7a;
+  }
+
+  /* サクセスメッセージのダークスタイル */
+  .success-dark {
+    @apply p-4 rounded-lg mt-4 font-medium;
+    background: linear-gradient(145deg, rgba(40, 167, 69, 0.2) 0%, rgba(40, 167, 69, 0.1) 100%);
+    border-left: 4px solid #28a745;
+    backdrop-filter: blur(10px);
+    color: #4ade80;
+  }
+
+  /* グラデーション信頼度バー */
+  .confidence-bar-dark {
+    @apply h-2 rounded-full overflow-hidden;
+    background: rgba(255,255,255,0.1);
+    backdrop-filter: blur(5px);
+  }
+
+  .confidence-fill-dark {
+    @apply h-full rounded-full transition-all duration-500 ease-out;
+    background: linear-gradient(90deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+    box-shadow: 
+      0 0 10px rgba(102, 126, 234, 0.5),
+      inset 0 1px 0 rgba(255,255,255,0.2);
+  }
+
+  /* Grad-CAM説明テキストのダークスタイル */
+  .gradcam-description-dark {
+    @apply p-4 rounded-lg;
+    background: linear-gradient(145deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.08) 100%);
+    border-left: 4px solid;
+    border-image: linear-gradient(135deg, #667eea, #764ba2) 1;
+    backdrop-filter: blur(10px);
+    color: rgba(255,255,255,0.8);
+    font-style: italic;
+  }
+}
+
+/* ユーティリティクラス */
+@layer utilities {
+  .text-dark-primary {
+    color: rgba(255,255,255,0.9);
+  }
+
+  .text-dark-secondary {
+    color: rgba(255,255,255,0.7);
+  }
+
+  .text-dark-muted {
+    color: rgba(255,255,255,0.5);
+  }
+
+  .animate-fade-in-up {
+    animation: fadeInUp 0.6s ease-out;
+  }
+
+  .spinner-dark {
+    border-color: rgba(255,255,255,0.3);
+    border-top-color: #667eea;
+  }
+}
+
+/* アニメーション */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

@@ -1,0 +1,14 @@
+# 開発用
+FROM node:20-alpine
+
+WORKDIR /app
+
+# 依存関係をコピー
+COPY package.json package-lock.json ./
+RUN npm install
+
+# ソースコードをコピー（開発中はボリュームで上書きされる）
+COPY . .
+
+# デフォルトコマンド
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
